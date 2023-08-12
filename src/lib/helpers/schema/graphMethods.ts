@@ -1,4 +1,4 @@
-import type { FlowGraph } from './schema.js'
+import type { FlowNode } from './schema.js'
 import { intersect } from './setMethods.js'
 
 /**
@@ -24,11 +24,10 @@ type IdMap = { [id: string]: string }
  * @param schema The schema to convert from
  * @return The linked list representation
  */
-export const toGraph = (schema: FlowGraph<any>): Graph => {
+export const toGraph = (nodes: FlowNode[]): Graph => {
   let graph: Graph = {}
-  for (const { id, output_nodes } of schema.nodes) {
-    graph[id] = output_nodes.map(([id, _]) => id)
-  }
+  for (const { id, output_nodes } of nodes)
+    graph[id] = output_nodes.map(([{ id }, _]) => id)
   return graph
 }
 

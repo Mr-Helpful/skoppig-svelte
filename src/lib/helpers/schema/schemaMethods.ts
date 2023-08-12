@@ -1,14 +1,9 @@
-import type { FlowNode, FlowGraph } from './schema.js'
+import type { FlowNode } from './schema.js'
 import { difference, toArray } from './setMethods.js'
-import {
-  graphChildren,
-  toGraph,
-  graphRootsFrom,
-  graphRoots
-} from './graphMethods.js'
+import { graphChildren, toGraph, graphRootsFrom } from './graphMethods.js'
 
 /** All descendants of nodes within a schema */
-export const childrenOf = (ids: string[], schema: FlowGraph): Set<string> => {
+export const childrenOf = (ids: string[], schema: FlowNode[]): Set<string> => {
   return graphChildren(ids, toGraph(schema))
 }
 
@@ -18,14 +13,18 @@ export const childrenOf = (ids: string[], schema: FlowGraph): Set<string> => {
  * @param id The id of the node to check from
  * @param schema The schema to check within
  */
-export const cycleWith = (ids: string[], schema: FlowGraph): boolean => {
+export const cycleWith = (ids: string[], schema: FlowNode[]): boolean => {
   const children = childrenOf(ids, schema)
   return ids.every(id => children.has(id))
 }
 
 /** Finds **all** roots in a schema */
-export const rootsIn = (schema: FlowGraph): Set<string> => {
-  return graphRoots(toGraph(schema))
+export const rootsIn = (schema: FlowNode[]): Set<string> => {
+  return new Set(
+    schema
+      .filter(({ output_nodes }) => output_nodes.length === 0)
+      .map(({ id }) => id)
+  )
 }
 
 // /** Finds all roots in a schema accessible from nodes */
@@ -39,7 +38,7 @@ export const rootsIn = (schema: FlowGraph): Set<string> => {
  */
 export const collapsibleFrom = (
   ids: string[],
-  schema: FlowGraph
+  schema: FlowNode[]
 ): Set<string> => {
   const graph = toGraph(schema)
 
@@ -78,30 +77,13 @@ export const collapsibleFrom = (
  */
 export const exposedPorts = (
   ids: Set<string>,
-  { nodes }: FlowGraph
+  schema: FlowNode[]
 ): [string, number][] => {
-  const node_map = Object.fromEntries(nodes.map(node => [node.id, node]))
-  return Array.from(ids, id => node_map[id]).flatMap(node =>
-    node.input_nodes
-      .filter(input => input !== undefined)
-      .map((_, i): [string, number] => [node.id, i])
-  )
-}
-
-/**
- * Splits nodes into internal nodes and other nodes
- */
-const splitNodes = (
-  ids: Set<string>,
-  { nodes }: FlowGraph
-): { inNodes: FlowNode[]; outNodes: FlowNode[] } => {
-  let inNodes: FlowNode[] = []
-  let outNodes: FlowNode[] = []
-  for (const node of nodes) {
-    if (ids.has(node.id)) inNodes.push(node)
-    else outNodes.push(node)
-  }
-  return { inNodes, outNodes }
+  return schema
+    .filter(({ id }) => ids.has(id))
+    .flatMap(({ id, input_nodes }): [string, number][] =>
+      input_nodes.map((_, i) => [id, i])
+    )
 }
 
 /**
@@ -110,36 +92,32 @@ const splitNodes = (
  */
 export const splitSchema = (
   ids: Set<string>,
-  { nodes }: FlowGraph
-): { inSchema: FlowGraph; outSchema: FlowGraph } => {
-  let inNodes: FlowNode[] = []
-  let outNodes: FlowNode[] = []
-  for (const node of nodes) {
-    if (ids.has(node.id)) inNodes.push(node)
-    else outNodes.push(node)
+  schema: FlowNode[]
+): { in_schema: FlowNode[]; out_schema: FlowNode[] } => {
+  let in_schema: FlowNode[] = []
+  let out_schema: FlowNode[] = []
+  for (const node of schema) {
+    if (ids.has(node.id)) in_schema.push(node)
+    else out_schema.push(node)
   }
-  return {
-    inSchema: { nodes: inNodes },
-    outSchema: { nodes: outNodes }
-  }
+
+  return { in_schema, out_schema }
 }
 
-type SelectGraph<FlowData> = FlowGraph<FlowData, { selected: boolean }>
+type SelectGraph<FlowData> = {
+  node: FlowNode<FlowData[], FlowData>
+  selected: boolean
+}[]
 
 /** Finds all currently selected nodes in the schema */
-export const selectedIds = <Data>({ nodes }: SelectGraph<Data>): string[] => {
-  return nodes.filter(node => node.data.selected).map(node => node.id)
+export const selectedIds = <Data>(schema: SelectGraph<Data>): string[] => {
+  return schema.filter(({ selected }) => selected).map(({ node: { id } }) => id)
 }
 
 /** Selects all nodes in a schema from a given set */
 export const selectIn = <Data>(
   ids: Set<string>,
-  { nodes }: SelectGraph<Data>
+  schema: SelectGraph<Data>
 ): SelectGraph<Data> => {
-  return {
-    nodes: nodes.map(node => ({
-      ...node,
-      data: { selected: ids.has(node.id) }
-    }))
-  }
+  return schema.map(({ node }) => ({ node, selected: ids.has(node.id) }))
 }
