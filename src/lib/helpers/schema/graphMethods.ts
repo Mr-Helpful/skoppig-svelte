@@ -7,11 +7,6 @@ import { intersect } from './setMethods.js'
 type Graph = { [id: string]: string[] }
 
 /**
- * A map from port ids to the nodes that contain the port
- */
-type IdMap = { [id: string]: string }
-
-/**
  * Creates a linked list representation of the graph from the schema
  * A linked list representation is as so:
  * ```
