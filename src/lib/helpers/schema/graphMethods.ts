@@ -42,11 +42,11 @@ export const graphChildren = (ids: string[], graph: Graph): Set<string> => {
     const id = queue.shift()
     if (id !== undefined && graph[id] !== undefined) {
       for (const sub of graph[id].filter(id => !seen.has(id))) {
-          queue.push(sub)
-          seen.add(sub)
-        }
+        queue.push(sub)
+        seen.add(sub)
       }
     }
+  }
 
   return seen
 }
@@ -79,10 +79,10 @@ const undirect = (graph: Graph): Graph => {
 }
 
 /** Finds **all** roots in a given graph */
-export const graphRoots = (graph: Graph): Set<string> => {
+const graphRoots = (graph: Graph): Set<string> => {
   const reversed = reverse(graph)
   const nodeIds = Object.keys(reversed)
-  return new Set(nodeIds.filter(id => reversed[id].length == 0))
+  return new Set(nodeIds.filter(id => reversed[id].length === 0))
 }
 
 /** Finds all roots within a graph accessible from nodes */
