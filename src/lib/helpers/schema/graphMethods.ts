@@ -41,14 +41,12 @@ export const graphChildren = (ids: string[], graph: Graph): Set<string> => {
   while (queue.length > 0) {
     const id = queue.shift()
     if (id !== undefined && graph[id] !== undefined) {
-      for (const sub of graph[id]) {
-        if (!seen.has(sub)) {
+      for (const sub of graph[id].filter(id => !seen.has(id))) {
           queue.push(sub)
           seen.add(sub)
         }
       }
     }
-  }
 
   return seen
 }
